@@ -1,0 +1,10 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: calculator-api:latest
+    container_name: calculator-api
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
