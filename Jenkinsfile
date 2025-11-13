@@ -9,12 +9,18 @@ pipeline {
 
     stages {
 
+        /* =======================
+           CHECKOUT FROM GITHUB
+           ======================= */
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
+        /* =======================
+           PYTHON ENV + DEPENDENCIES
+           ======================= */
         stage('Setup Python Environment') {
             steps {
                 sh """
@@ -25,6 +31,9 @@ pipeline {
             }
         }
 
+        /* =======================
+           RUN PYTEST
+           ======================= */
         stage('Run Tests') {
             steps {
                 sh """
@@ -33,6 +42,9 @@ pipeline {
             }
         }
 
+        /* =======================
+           STATIC ANALYSIS (BANDIT)
+           ======================= */
         stage('Static Code Analysis (Bandit)') {
             steps {
                 sh """
@@ -42,23 +54,33 @@ pipeline {
             }
         }
 
+        /* =======================
+           DEPENDENCY SCAN (SAFETY)
+           ======================= */
         stage('Dependency Vulnerability Scan (Safety)') {
             steps {
                 sh """
                     ${PIP} install safety
-                    ./venv/bin/safety scan -r requirements.txt || true
+                    ./venv/bin/safety scan -r requirements.txt --disable-telemetry || true
                 """
             }
         }
 
+        /* =======================
+           DOCKER BUILD
+           ======================= */
         stage('Build Docker Image') {
             steps {
                 sh """
+                    sudo chmod 666 /var/run/docker.sock
                     docker-compose build
                 """
             }
         }
 
+        /* =======================
+           TRIVY SCAN
+           ======================= */
         stage('Container Vulnerability Scan (Trivy)') {
             steps {
                 sh """
@@ -67,15 +89,22 @@ pipeline {
             }
         }
 
+        /* =======================
+           DEPLOY WITH DOCKER-COMPOSE
+           ======================= */
         stage('Deploy Application') {
             steps {
                 sh """
+                    sudo chmod 666 /var/run/docker.sock
                     docker-compose up -d
                 """
             }
         }
     }
 
+    /* =======================
+       CLEAN WORKSPACE
+       ======================= */
     post {
         always {
             cleanWs()
