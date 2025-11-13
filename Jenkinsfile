@@ -72,6 +72,7 @@ pipeline {
         stage('Deploy Application') {
             steps {
                 sh """
+                    docker rm -f calculator-api || true
                     docker-compose down --remove-orphans || true
                     docker-compose up -d
                 """
