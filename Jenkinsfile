@@ -2,15 +2,14 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "calculator_api_app"
-        PYTHON = "./venv/bin/python"
-        PIP = "./venv/bin/pip"
+        IMAGE_NAME = 'calculator-api-app'
     }
 
     stages {
 
         stage('Checkout') {
             steps {
+                // Récupère le code depuis ton repo GitHub
                 checkout scm
             }
         }
@@ -19,8 +18,8 @@ pipeline {
             steps {
                 sh """
                     python3 -m venv venv
-                    ${PIP} install --upgrade pip
-                    ${PIP} install -r requirements.txt
+                    ./venv/bin/pip install --upgrade pip
+                    ./venv/bin/pip install -r requirements.txt
                 """
             }
         }
@@ -28,7 +27,7 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh """
-                    ${PYTHON} -m pytest || true
+                    ./venv/bin/pytest || true
                 """
             }
         }
@@ -36,7 +35,7 @@ pipeline {
         stage('Static Code Analysis (Bandit)') {
             steps {
                 sh """
-                    ${PIP} install bandit
+                    ./venv/bin/pip install bandit
                     ./venv/bin/bandit -r . || true
                 """
             }
@@ -45,7 +44,8 @@ pipeline {
         stage('Dependency Vulnerability Scan (Safety)') {
             steps {
                 sh """
-                    ${PIP} install safety
+                    ./venv/bin/pip install safety
+                    # IMPORTANT : mode non interactif, pas de login
                     ./venv/bin/safety check --full-report --no-api -r requirements.txt || true
                 """
             }
@@ -54,6 +54,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh """
+                    # PAS de sudo ici, les droits Docker doivent être déjà réglés sur la machine
                     docker-compose build
                 """
             }
@@ -62,6 +63,7 @@ pipeline {
         stage('Container Vulnerability Scan (Trivy)') {
             steps {
                 sh """
+                    # Scan de l'image Docker avec Trivy
                     trivy image ${IMAGE_NAME}:latest || true
                 """
             }
